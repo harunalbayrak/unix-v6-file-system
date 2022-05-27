@@ -27,14 +27,13 @@ int FileSystem::getBlockSize(){
 }
 
 int FileSystem::makeFileSystem(){
-    sid.superBlock.generalInfo.superBlockSize = sizeof(SuperBlock);
-    sid.superBlock.generalInfo.inodeSize = inodeSize;
-    sid.superBlock.generalInfo.dataBlockSize = blockSize * 1024;
-    sid.superBlock.numberOf.inodes = 0;
-    sid.superBlock.numberOf.dataBlocks = 0;
-    sid.superBlock.numberOf.freeInodes = NUMBEROF_INODE;
-    sid.superBlock.numberOf.freeDataBlocks = NUMBEROF_BLOCK;
-    sid.superBlock.startAddresses.superBlockStartAddress = 0;
+    sid.superBlock.setSuperBlockSize(sizeof(SuperBlock));
+    sid.superBlock.setInodeSize(inodeSize);
+    sid.superBlock.setBlockSize(blockSize * 1024);
+    sid.superBlock.setNumberOfInodes(0);
+    sid.superBlock.setNumberOfBlocks(0);
+    sid.superBlock.setNumberOfFreeInodes(NUMBEROF_INODE);
+    sid.superBlock.setNumberOfFreeBlocks(NUMBEROF_BLOCK);
 
     for(int i=0;i<NUMBEROF_INODE;++i){
         // createInode(&sid.inodes[i],i+1);
@@ -43,15 +42,15 @@ int FileSystem::makeFileSystem(){
     }
 
     for(int i=0;i<NUMBEROF_BLOCK;++i){
-        DataBlock dataBlock = DataBlock(sid.superBlock.generalInfo.dataBlockSize);
+        DataBlock dataBlock = DataBlock(sid.superBlock.getBlockSize());
 
         sid.dataBlocks[i] = dataBlock;
     }
 
-    sid.superBlock.numberOf.inodes++;
-    sid.superBlock.numberOf.freeInodes--;
-    sid.superBlock.numberOf.dataBlocks++;
-    sid.superBlock.numberOf.freeDataBlocks--;
+    sid.superBlock.setNumberOfInodes(sid.superBlock.getNumberOfInodes() + 1);
+    sid.superBlock.setNumberOfBlocks(sid.superBlock.getNumberOfBlocks() + 1);
+    sid.superBlock.setNumberOfFreeInodes(sid.superBlock.getNumberOfFreeInodes() - 1);
+    sid.superBlock.setNumberOfFreeBlocks(sid.superBlock.getNumberOfFreeBlocks() - 1);
 
     sid.inodes[0].isEmpty = 0;
     sid.inodes[0].type = ROOT_DIRECTORY;
@@ -101,7 +100,7 @@ int FileSystem::dir(string path){
 int FileSystem::mkdir(string path){
     readSIDFromFS();
 
-    if(sid.superBlock.numberOf.freeInodes == 0 || sid.superBlock.numberOf.freeDataBlocks == 0){
+    if(sid.superBlock.getNumberOfFreeInodes() == 0 || sid.superBlock.getNumberOfFreeBlocks() == 0){
         printf("Error 4");
         return -1;
     }
@@ -186,7 +185,7 @@ int FileSystem::dumpe2fs(){
 int FileSystem::write(string path, string filename){
     readSIDFromFS();
 
-    if(sid.superBlock.numberOf.freeInodes == 0 || sid.superBlock.numberOf.freeDataBlocks == 0){
+    if(sid.superBlock.getNumberOfFreeInodes() == 0 || sid.superBlock.getNumberOfFreeBlocks() == 0){
         printf("Error 4");
         return -1;
     }
@@ -228,7 +227,7 @@ int FileSystem::write(string path, string filename){
         newfile.close();
     }
 
-    double d_howManyBlock = fileContent.size()/(double)sid.superBlock.generalInfo.dataBlockSize;
+    double d_howManyBlock = fileContent.size()/(double)sid.superBlock.getBlockSize();
     int i_howManyBlock = ceil(d_howManyBlock);
 
     for(int i=0;i<NUMBEROF_BLOCK;++i){
@@ -244,9 +243,9 @@ int FileSystem::write(string path, string filename){
     sid.inodes[currentInodeNum] = _inode;
 
     int i=0;
-    for (unsigned int j=0; j<fileContent.size(); j+=sid.superBlock.generalInfo.dataBlockSize) {
-        sid.dataBlocks[currentBlocks[i]] = DataBlock(sid.superBlock.generalInfo.dataBlockSize,REGULAR_FILE);
-        sid.dataBlocks[currentBlocks[i]].setData(fileContent.substr(j,j+sid.superBlock.generalInfo.dataBlockSize));
+    for (unsigned int j=0; j<fileContent.size(); j+=sid.superBlock.getBlockSize()) {
+        sid.dataBlocks[currentBlocks[i]] = DataBlock(sid.superBlock.getBlockSize(),REGULAR_FILE);
+        sid.dataBlocks[currentBlocks[i]].setData(fileContent.substr(j,j+sid.superBlock.getBlockSize()));
         printf("size %d : %d\n",i,sid.dataBlocks[currentBlocks[i]].size());
         i++;
     }
@@ -459,10 +458,10 @@ int FileSystem::readSIDFromFS(){
 int FileSystem::incrementI_B(){
     readSIDFromFS();
 
-    sid.superBlock.numberOf.inodes++;
-    sid.superBlock.numberOf.freeInodes--;
-    sid.superBlock.numberOf.dataBlocks++;
-    sid.superBlock.numberOf.freeDataBlocks--;
+    sid.superBlock.setNumberOfInodes(sid.superBlock.getNumberOfInodes() + 1);
+    sid.superBlock.setNumberOfBlocks(sid.superBlock.getNumberOfBlocks() + 1);
+    sid.superBlock.setNumberOfFreeInodes(sid.superBlock.getNumberOfFreeInodes() - 1);
+    sid.superBlock.setNumberOfFreeBlocks(sid.superBlock.getNumberOfFreeBlocks() - 1);
 
     writeSIDToFS();
 
@@ -561,17 +560,15 @@ int FileSystem::printCommand(int command, string path, string filename){
 int FileSystem::printSuperBlock(const SuperBlock& superblock){
     printf("---------- SUPERBLOCK ----------\n");
     printf("--------- General Info ---------\n");
-    printf("Block Size: %d\n",sid.superBlock.generalInfo.dataBlockSize);
-    printf("Inode Size: %d\n",sid.superBlock.generalInfo.inodeSize);
-    printf("SuperBlock Size: %d\n",sid.superBlock.generalInfo.superBlockSize);
+    printf("Block Size: %d\n",sid.superBlock.getBlockSize());
+    printf("Inode Size: %d\n",sid.superBlock.getInodeSize());
+    printf("SuperBlock Size: %d\n",sid.superBlock.getSuperBlockSize());
     // printf("Block per group: %d\n",superBlock.generalInfo.groupBlock);
     printf("---------- Number Of ----------\n");
-    printf("Number of Free Data Blocks: %d\n",sid.superBlock.numberOf.freeDataBlocks);
-    printf("Number of Data Blocks: %d\n",sid.superBlock.numberOf.dataBlocks);
-    printf("Number of Free Inodes: %d\n",sid.superBlock.numberOf.freeInodes);
-    printf("Number of Inodes: %d\n",sid.superBlock.numberOf.inodes);
-    printf("------- Start Addresses  -------\n");
-    printf("SuperBlock Start Adress: %d\n",sid.superBlock.startAddresses.superBlockStartAddress);
+    printf("Number of Free Data Blocks: %d\n",sid.superBlock.getNumberOfFreeBlocks());
+    printf("Number of Data Blocks: %d\n",sid.superBlock.getNumberOfBlocks());
+    printf("Number of Free Inodes: %d\n",sid.superBlock.getNumberOfFreeInodes());
+    printf("Number of Inodes: %d\n",sid.superBlock.getNumberOfInodes());
     printf("--------------------------------\n");
 
     return 0;
