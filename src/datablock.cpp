@@ -1,6 +1,6 @@
 #include <iostream>
 #include <cstdlib>
-#include "datablock.h"
+#include "../include/datablock.h"
 
 DataBlock::DataBlock(){
     data.resize(0);

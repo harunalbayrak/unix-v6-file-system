@@ -1,7 +1,7 @@
-#include "superblock.h"
-#include "directoryentry.h"
-#include "inode.h"
-#include "filesystem.h"
+#include "include/superblock.h"
+#include "include/directoryentry.h"
+#include "include/inode.h"
+#include "include/filesystem.h"
 
 using namespace std;
 

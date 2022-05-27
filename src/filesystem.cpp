@@ -2,8 +2,8 @@
 #include <iostream>
 #include <fstream>
 #include <cmath>
-#include "filesystem.h"
-#include "directoryentry.h"
+#include "../include/filesystem.h"
+#include "../include/directoryentry.h"
 
 FileSystem::FileSystem(){
     this->blockSize = 4096;

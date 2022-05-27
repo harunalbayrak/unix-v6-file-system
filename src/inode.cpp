@@ -1,6 +1,6 @@
 #include <iostream>
 #include <cstdlib>
-#include "inode.h"
+#include "../include/inode.h"
 
 Inode::Inode(){
     init();
