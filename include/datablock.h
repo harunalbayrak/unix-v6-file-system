@@ -11,22 +11,19 @@ class DataBlock {
         DataBlock();
         DataBlock(int blockSize);
         DataBlock(int blockSize, I_Type type);
-        ~DataBlock();
-        int addDirectoryEntry(DirectoryEntry directoryEntry);
-        int removeDirectoryEntry(int inodeAddress);
-        DirectoryEntry* getDirectoryEntries();
-        int getDirectoryEntriesSize();
-        int setEmptyDataBlock(int blockSize);
-        int setDirectoryEntriesSize(int size);
         int size();
         int isEmpty();
         int isDirectory();
-        DirectoryEntry getDirectoryEntry();
+        int addDirectoryEntry(DirectoryEntry directoryEntry);
+        int removeDirectoryEntry(int inodeAddress);
+        int setEmptyDataBlock(int blockSize);
+        int setDirectoryEntriesSize(int size);
         int setData(string data);
+        DirectoryEntry* getDirectoryEntries();
+        int getDirectoryEntriesSize();
         string getData();
     private:
         void init();
-     
         int directoryEntriesSize;
         DirectoryEntry* directoryEntries;
         string data;

@@ -10,13 +10,13 @@ class SuperBlock{
         unsigned int getSuperBlockSize();
         unsigned int getInodeSize();
         unsigned int getBlockSize();
-        int setNumberOfInodes(int n);
-        int setNumberOfBlocks(int n);
-        int setNumberOfFreeInodes(int n);
-        int setNumberOfFreeBlocks(int n);
-        int setSuperBlockSize(int n);
-        int setInodeSize(int n);
-        int setBlockSize(int n);
+        void setNumberOfInodes(int n);
+        void setNumberOfBlocks(int n);
+        void setNumberOfFreeInodes(int n);
+        void setNumberOfFreeBlocks(int n);
+        void setSuperBlockSize(int n);
+        void setInodeSize(int n);
+        void setBlockSize(int n);
     private:
         unsigned int inodes;
         unsigned int blocks;
@@ -26,24 +26,5 @@ class SuperBlock{
         unsigned int inodeSize;
         unsigned int blockSize;
 };
-
-// typedef struct {
-//     unsigned short inodes;
-//     unsigned int dataBlocks;
-//     unsigned short freeInodes;
-//     unsigned int freeDataBlocks;
-// } S_NumberOf;
-
-// typedef struct {
-//     unsigned short superBlockSize;
-//     unsigned short inodeSize;
-//     unsigned short dataBlockSize;
-//     // unsigned short groupBlock;
-// } S_GeneralInfo;
-
-// typedef struct {
-//     S_NumberOf numberOf;
-//     S_GeneralInfo generalInfo;
-// } SuperBlock;
 
 #endif

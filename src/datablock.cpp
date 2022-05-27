@@ -17,9 +17,20 @@ DataBlock::DataBlock(int blockSize, I_Type type){
     init();
 }
 
-DataBlock::~DataBlock(){
-    // free(data);
-    // free(directoryEntries);
+int DataBlock::size(){
+    if(data.compare("") == 0){
+        return sizeof(DirectoryEntry) * directoryEntriesSize;
+    }
+
+    return data.size();
+}
+
+int DataBlock::isEmpty(){
+    return directoryEntriesSize == 0;
+}
+
+int DataBlock::isDirectory(){
+    return data.size() == 0;
 }
 
 int DataBlock::addDirectoryEntry(DirectoryEntry directoryEntry){
@@ -57,7 +68,7 @@ int DataBlock::removeDirectoryEntry(int inodeAddress){
         } else{
             DirectoryEntry* old = (DirectoryEntry*) malloc(directoryEntriesSize*sizeof(DirectoryEntry));
             for(int i=0,j=0;i<directoryEntriesSize;++i,++j){
-                if(directoryEntries[j].inodeAddress != inodeAddress){
+                if(directoryEntries[j].getInodeAddress() != inodeAddress){
                     old[i] = directoryEntries[j];
                 } else{
                     i = i-1;
@@ -80,14 +91,6 @@ int DataBlock::removeDirectoryEntry(int inodeAddress){
     return 0;
 }
 
-DirectoryEntry* DataBlock::getDirectoryEntries(){
-    return directoryEntries;
-}
-
-int DataBlock::getDirectoryEntriesSize(){
-    return directoryEntriesSize;
-}
-
 int DataBlock::setEmptyDataBlock(int blockSize){
     data.clear();
     data.resize(blockSize);
@@ -101,26 +104,18 @@ int DataBlock::setDirectoryEntriesSize(int size){
     return 0;
 }
 
-int DataBlock::size(){
-    if(data.compare("") == 0){
-        return sizeof(DirectoryEntry) * directoryEntriesSize;
-    }
-
-    return data.size();
-}
-
-int DataBlock::isEmpty(){
-    return directoryEntriesSize == 0;
-}
-
-int DataBlock::isDirectory(){
-    return data.size() == 0;
-}
-
 int DataBlock::setData(string data){
     this->data = data;
 
     return 0;
+}
+
+DirectoryEntry* DataBlock::getDirectoryEntries(){
+    return directoryEntries;
+}
+
+int DataBlock::getDirectoryEntriesSize(){
+    return directoryEntriesSize;
 }
 
 string DataBlock::getData(){

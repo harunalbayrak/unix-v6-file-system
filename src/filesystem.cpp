@@ -91,7 +91,7 @@ int FileSystem::dir(string path){
     for(int i=0;i<_dataBlock.getDirectoryEntriesSize();++i){
         DirectoryEntry _directoryEntry = _dataBlock.getDirectoryEntries()[i];
 
-        printf("-> %s\n",_directoryEntry.directoryName);
+        printf("-> %s\n",_directoryEntry.getDirectoryName());
     }
 
     return 0;
@@ -132,8 +132,8 @@ int FileSystem::mkdir(string path){
     int _block = splitPath(&path);
 
     DirectoryEntry _directoryEntry;
-    _directoryEntry.inodeAddress = currentInodeNum;
-    strcpy(_directoryEntry.directoryName,path.c_str());
+    _directoryEntry.setInodeAddress(currentInodeNum);
+    _directoryEntry.setDirectoryName(path.c_str());
 
     sid.dataBlocks[_block].addDirectoryEntry(_directoryEntry); 
 
@@ -158,9 +158,9 @@ int FileSystem::rmdir(string path){
     for(int i=0;i<_dataBlock.getDirectoryEntriesSize();++i){
         DirectoryEntry _directoryEntry = _dataBlock.getDirectoryEntries()[i];
 
-        if(strcmp(_directoryEntry.directoryName,path.c_str()) == 0){
-            if(sid.inodes[_directoryEntry.inodeAddress].type == DIRECTORY){
-                sid.dataBlocks[_block].removeDirectoryEntry(_directoryEntry.inodeAddress);
+        if(strcmp(_directoryEntry.getDirectoryName(),path.c_str()) == 0){
+            if(sid.inodes[_directoryEntry.getInodeAddress()].type == DIRECTORY){
+                sid.dataBlocks[_block].removeDirectoryEntry(_directoryEntry.getInodeAddress());
                 flag = 1;
             }
         }
@@ -251,8 +251,8 @@ int FileSystem::write(string path, string filename){
     }
 
     DirectoryEntry _directoryEntry;
-    _directoryEntry.inodeAddress = currentInodeNum;
-    strcpy(_directoryEntry.directoryName,path.c_str());
+    _directoryEntry.setInodeAddress(currentInodeNum);
+    _directoryEntry.setDirectoryName(path.c_str());
 
     sid.dataBlocks[_block].addDirectoryEntry(_directoryEntry); 
 
@@ -333,9 +333,9 @@ int FileSystem::del(string path){
     for(int i=0;i<_dataBlock.getDirectoryEntriesSize();++i){
         DirectoryEntry _directoryEntry = _dataBlock.getDirectoryEntries()[i];
 
-        if(strcmp(_directoryEntry.directoryName,path.c_str()) == 0){
-            if(sid.inodes[_directoryEntry.inodeAddress].type == REGULAR_FILE){
-                sid.dataBlocks[_block].removeDirectoryEntry(_directoryEntry.inodeAddress);
+        if(strcmp(_directoryEntry.getDirectoryName(),path.c_str()) == 0){
+            if(sid.inodes[_directoryEntry.getInodeAddress()].type == REGULAR_FILE){
+                sid.dataBlocks[_block].removeDirectoryEntry(_directoryEntry.getInodeAddress());
                 flag = 1;
             }
         }
@@ -366,9 +366,9 @@ int FileSystem::getDataBlock2(const char* db){
 
             // printf("%d %s %s\n",_directoryEntry.inodeAddress,_directoryEntry.directoryName,db);
 
-            int cmp = strcmp(_directoryEntry.directoryName,db);
+            int cmp = strcmp(_directoryEntry.getDirectoryName(),db);
             if(cmp == 0){
-                return _directoryEntry.inodeAddress;
+                return _directoryEntry.getInodeAddress();
             }
         }
     }

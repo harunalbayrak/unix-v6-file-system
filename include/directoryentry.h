@@ -2,10 +2,16 @@
 #define _DIRECTORYENTRY_H_
 
 #define MAX_NAME_SIZE 30
-
-typedef struct {
-    int inodeAddress = -1;
-    char directoryName[MAX_NAME_SIZE];
-} DirectoryEntry;
+class DirectoryEntry{
+    public:
+        DirectoryEntry();
+        int getInodeAddress();
+        char* getDirectoryName();
+        void setInodeAddress(int n);
+        void setDirectoryName(const char* directoryName);
+    private:
+        int inodeAddress;
+        char directoryName[MAX_NAME_SIZE];
+};
 
 #endif

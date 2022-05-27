@@ -28,30 +28,30 @@ unsigned int SuperBlock::getBlockSize(){
     return blockSize;
 }
 
-int SuperBlock::setNumberOfInodes(int n){
+void SuperBlock::setNumberOfInodes(int n){
     inodes = n;
 }
 
-int SuperBlock::setNumberOfBlocks(int n){
+void SuperBlock::setNumberOfBlocks(int n){
     blocks = n;
 }
 
-int SuperBlock::setNumberOfFreeInodes(int n){
+void SuperBlock::setNumberOfFreeInodes(int n){
     freeInodes = n;
 }
 
-int SuperBlock::setNumberOfFreeBlocks(int n){
+void SuperBlock::setNumberOfFreeBlocks(int n){
     freeBlocks = n;
 }
 
-int SuperBlock::setSuperBlockSize(int n){
+void SuperBlock::setSuperBlockSize(int n){
     superBlockSize = n;
 }
 
-int SuperBlock::setInodeSize(int n){
+void SuperBlock::setInodeSize(int n){
     inodeSize = n;
 }
 
-int SuperBlock::setBlockSize(int n){
+void SuperBlock::setBlockSize(int n){
     blockSize = n;
 }
