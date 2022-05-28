@@ -58,7 +58,6 @@ int Inode::setAddresses(int addresses[], int addressesSize){
 
 void Inode::init(){
     inodeNumber = 0;
-    size = 0;
     permission = 0;
     changedTime = time(NULL);
     modifiedTime = time(NULL);

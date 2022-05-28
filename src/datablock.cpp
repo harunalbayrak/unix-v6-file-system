@@ -40,14 +40,14 @@ int DataBlock::addDirectoryEntry(DirectoryEntry directoryEntry){
             directoryEntries[directoryEntriesSize++] = directoryEntry;
         } else{
             DirectoryEntry* old = (DirectoryEntry*) malloc(directoryEntriesSize*sizeof(DirectoryEntry));
-            for(int i=0;i<directoryEntriesSize;++i){
+            for(size_t i=0;i<directoryEntriesSize;++i){
                 old[i] = directoryEntries[i];
             }
 
             directoryEntriesSize++;
             directoryEntries = (DirectoryEntry*) realloc(directoryEntries, directoryEntriesSize*sizeof(DirectoryEntry));
     
-            for(int i=0;i<directoryEntriesSize-1;++i){
+            for(size_t i=0;i<directoryEntriesSize-1;++i){
                 directoryEntries[i] = old[i];
             }
 
@@ -67,7 +67,7 @@ int DataBlock::removeDirectoryEntry(int inodeAddress){
             return -1;
         } else{
             DirectoryEntry* old = (DirectoryEntry*) malloc(directoryEntriesSize*sizeof(DirectoryEntry));
-            for(int i=0,j=0;i<directoryEntriesSize;++i,++j){
+            for(size_t i=0,j=0;i<directoryEntriesSize;++i,++j){
                 if(directoryEntries[j].getInodeAddress() != inodeAddress){
                     old[i] = directoryEntries[j];
                 } else{
@@ -79,7 +79,7 @@ int DataBlock::removeDirectoryEntry(int inodeAddress){
             directoryEntriesSize--;
             directoryEntries = (DirectoryEntry*) realloc(directoryEntries, directoryEntriesSize*sizeof(DirectoryEntry));
     
-            for(int i=0;i<directoryEntriesSize;++i){
+            for(size_t i=0;i<directoryEntriesSize;++i){
                 directoryEntries[i] = old[i];
             }
         }
@@ -114,7 +114,7 @@ DirectoryEntry* DataBlock::getDirectoryEntries(){
     return directoryEntries;
 }
 
-int DataBlock::getDirectoryEntriesSize(){
+size_t DataBlock::getDirectoryEntriesSize(){
     return directoryEntriesSize;
 }
 

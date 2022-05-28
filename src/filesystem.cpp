@@ -88,7 +88,7 @@ int FileSystem::dir(string path){
     }
 
     DataBlock _dataBlock = sid.dataBlocks[_block];
-    for(int i=0;i<_dataBlock.getDirectoryEntriesSize();++i){
+    for(size_t i=0;i<_dataBlock.getDirectoryEntriesSize();++i){
         DirectoryEntry _directoryEntry = _dataBlock.getDirectoryEntries()[i];
 
         printf("-> %s\n",_directoryEntry.getDirectoryName());
@@ -155,7 +155,7 @@ int FileSystem::rmdir(string path){
     int flag = 0, _block = splitPath(&path);
 
     DataBlock _dataBlock = sid.dataBlocks[_block];
-    for(int i=0;i<_dataBlock.getDirectoryEntriesSize();++i){
+    for(size_t i=0;i<_dataBlock.getDirectoryEntriesSize();++i){
         DirectoryEntry _directoryEntry = _dataBlock.getDirectoryEntries()[i];
 
         if(strcmp(_directoryEntry.getDirectoryName(),path.c_str()) == 0){
@@ -330,7 +330,7 @@ int FileSystem::del(string path){
     int flag = 0, _block = splitPath(&path);
 
     DataBlock _dataBlock = sid.dataBlocks[_block];
-    for(int i=0;i<_dataBlock.getDirectoryEntriesSize();++i){
+    for(size_t i=0;i<_dataBlock.getDirectoryEntriesSize();++i){
         DirectoryEntry _directoryEntry = _dataBlock.getDirectoryEntries()[i];
 
         if(strcmp(_directoryEntry.getDirectoryName(),path.c_str()) == 0){
@@ -361,7 +361,7 @@ int FileSystem::getDataBlock2(const char* db){
         }
         int address = sid.inodes[i].addressOfDiskBlocks[0];
         DataBlock _dblock = sid.dataBlocks[address];
-        for(int i=0;i<_dblock.getDirectoryEntriesSize();++i){
+        for(size_t i=0;i<_dblock.getDirectoryEntriesSize();++i){
             DirectoryEntry _directoryEntry = _dblock.getDirectoryEntries()[i];
 
             // printf("%d %s %s\n",_directoryEntry.inodeAddress,_directoryEntry.directoryName,db);

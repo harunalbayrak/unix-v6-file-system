@@ -1,7 +1,10 @@
 #ifndef _DIRECTORYENTRY_H_
 #define _DIRECTORYENTRY_H_
 
-#define MAX_NAME_SIZE 30
+#include <iostream>
+
+#define MAX_NAME_SIZE 14
+
 class DirectoryEntry{
     public:
         DirectoryEntry();
@@ -10,7 +13,7 @@ class DirectoryEntry{
         void setInodeAddress(int n);
         void setDirectoryName(const char* directoryName);
     private:
-        int inodeAddress;
+        uint16_t inodeAddress;
         char directoryName[MAX_NAME_SIZE];
 };
 

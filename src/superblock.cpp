@@ -1,57 +1,57 @@
 #include "../include/superblock.h"
 
-unsigned int SuperBlock::getNumberOfInodes(){
+uint16_t SuperBlock::getNumberOfInodes(){
     return inodes;
 }
 
-unsigned int SuperBlock::getNumberOfBlocks(){
+uint16_t SuperBlock::getNumberOfBlocks(){
     return blocks;
 }
 
-unsigned int SuperBlock::getNumberOfFreeInodes(){
+uint16_t SuperBlock::getNumberOfFreeInodes(){
     return freeInodes;
 }
 
-unsigned int SuperBlock::getNumberOfFreeBlocks(){
+uint16_t SuperBlock::getNumberOfFreeBlocks(){
     return freeBlocks;
 }
 
-unsigned int SuperBlock::getSuperBlockSize(){
+uint16_t SuperBlock::getSuperBlockSize(){
     return superBlockSize;
 }
 
-unsigned int SuperBlock::getInodeSize(){
+uint16_t SuperBlock::getInodeSize(){
     return inodeSize;
 }
 
-unsigned int SuperBlock::getBlockSize(){
+uint16_t SuperBlock::getBlockSize(){
     return blockSize;
 }
 
-void SuperBlock::setNumberOfInodes(int n){
+void SuperBlock::setNumberOfInodes(uint16_t n){
     inodes = n;
 }
 
-void SuperBlock::setNumberOfBlocks(int n){
+void SuperBlock::setNumberOfBlocks(uint16_t n){
     blocks = n;
 }
 
-void SuperBlock::setNumberOfFreeInodes(int n){
+void SuperBlock::setNumberOfFreeInodes(uint16_t n){
     freeInodes = n;
 }
 
-void SuperBlock::setNumberOfFreeBlocks(int n){
+void SuperBlock::setNumberOfFreeBlocks(uint16_t n){
     freeBlocks = n;
 }
 
-void SuperBlock::setSuperBlockSize(int n){
+void SuperBlock::setSuperBlockSize(uint16_t n){
     superBlockSize = n;
 }
 
-void SuperBlock::setInodeSize(int n){
+void SuperBlock::setInodeSize(uint16_t n){
     inodeSize = n;
 }
 
-void SuperBlock::setBlockSize(int n){
+void SuperBlock::setBlockSize(uint16_t n){
     blockSize = n;
 }

@@ -17,9 +17,8 @@ class Inode {
         int setEmpty();
         int setAddresses(int addresses[], int addressesSize);
 
-        unsigned short inodeNumber;
-        unsigned int size;
-        unsigned short permission;
+        uint16_t inodeNumber;
+        uint16_t permission;
         time_t  changedTime;
 	    time_t  modifiedTime;
 	    time_t  accessTime;

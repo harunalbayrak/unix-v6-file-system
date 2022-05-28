@@ -20,11 +20,11 @@ class DataBlock {
         int setDirectoryEntriesSize(int size);
         int setData(string data);
         DirectoryEntry* getDirectoryEntries();
-        int getDirectoryEntriesSize();
+        size_t getDirectoryEntriesSize();
         string getData();
     private:
         void init();
-        int directoryEntriesSize;
+        size_t directoryEntriesSize;
         DirectoryEntry* directoryEntries;
         string data;
 };
