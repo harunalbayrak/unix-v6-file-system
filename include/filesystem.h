@@ -7,8 +7,8 @@
 #include "inode.h"
 #include "datablock.h"
 
-#define NUMBEROF_INODE 200
-#define NUMBEROF_BLOCK 200
+#define NUMBEROF_INODE 512
+#define NUMBEROF_BLOCK 65535 // Max value of uint16_t
 
 using namespace std;
 

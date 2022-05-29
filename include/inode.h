@@ -3,7 +3,7 @@
 
 #include <iostream>
 
-enum I_IndirectBlockType { SINGLE, DOUBLE, TRIPLE };
+enum I_IndirectBlockType { DIRECT, SINGLE, DOUBLE, TRIPLE };
 enum I_Type { ROOT_DIRECTORY, DIRECTORY, REGULAR_FILE };
 
 class Inode {
@@ -15,7 +15,7 @@ class Inode {
         Inode(int inodeNumber, int* addressesOfDiskBlock, int addressesOfDiskBlocksSize, I_Type type);
         
         int setEmpty();
-        int setAddresses(int addresses[], int addressesSize);
+        int setAddresses(uint16_t* addresses, int addressesSize);
 
         uint16_t inodeNumber;
         uint16_t permission;
@@ -24,7 +24,7 @@ class Inode {
 	    time_t  accessTime;
     	I_IndirectBlockType indirectBlockType;
     	I_Type type;
-        int addressOfDiskBlocks[10];
+        int addressOfDiskBlocks[8];
         int isEmpty;
 
     private:

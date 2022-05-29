@@ -192,7 +192,8 @@ int FileSystem::write(string path, string filename){
 
     int currentInodeNum = 0;
     int currentBlockNum = 0;
-    int currentBlocks[10];
+    int maxBlockSize = sid.superBlock.getBlockSize()/2;
+    uint16_t* currentBlocks = (uint16_t*) malloc(maxBlockSize*sizeof(uint16_t));
     int currentBlocksSize = 0;
 
     for(int i=0;i<NUMBEROF_INODE;++i){
@@ -213,7 +214,6 @@ int FileSystem::write(string path, string filename){
 
     Inode _inode = Inode(currentInodeNum,currentBlockNum,REGULAR_FILE);
     
-
     int _block = splitPath(&path);
 
     fstream newfile;
@@ -223,15 +223,19 @@ int FileSystem::write(string path, string filename){
         string tp;
         while(getline(newfile, tp)){
             fileContent.append(tp);
+            fileContent.append("\n");
         }
         newfile.close();
     }
+
+    // FIXME: Fix last character problem
+    // fileContent.pop_back();
 
     double d_howManyBlock = fileContent.size()/(double)sid.superBlock.getBlockSize();
     int i_howManyBlock = ceil(d_howManyBlock);
 
     for(int i=0;i<NUMBEROF_BLOCK;++i){
-        if(sid.dataBlocks[i].isEmpty() == 1){
+        if(sid.dataBlocks[i].isEmpty() == 1 && i != currentBlockNum){
             currentBlocks[currentBlocksSize++] = i;
             if(currentBlocksSize == i_howManyBlock){
                 break;
@@ -239,14 +243,49 @@ int FileSystem::write(string path, string filename){
         }
     }
 
-    _inode.setAddresses(currentBlocks,currentBlocksSize);
+    // printf("%d %d\n",maxBlockSize,i_howManyBlock);
+
+    d_howManyBlock = currentBlocksSize/(double)maxBlockSize;
+    i_howManyBlock = ceil(d_howManyBlock);
+
+    // printf("%d\n",i_howManyBlock);
+
+    int k=0;
+    for(int i=0;i<8 && i<i_howManyBlock;++i){
+        int addressSingleDB = -1;
+
+        // printf("hey\n");
+
+        if(i == 0){
+            addressSingleDB = _inode.addressOfDiskBlocks[i];
+        } else{
+            for(int j=0;j<NUMBEROF_BLOCK;++j){
+                if(sid.dataBlocks[j].isEmpty() == 1){
+                    currentBlockNum = j;
+                    break;
+                }
+            }
+            _inode.addressOfDiskBlocks[i] = currentBlockNum;
+            addressSingleDB = _inode.addressOfDiskBlocks[i];
+        }
+
+        for(;k<currentBlocksSize;++k){
+            // printf("cc: %d %d\n",addressSingleDB,currentBlocks[k]);
+
+            sid.dataBlocks[addressSingleDB].addAddress(currentBlocks[k]);
+        }
+    }
+
+    // _inode.setAddresses(currentBlocks,currentBlocksSize);
     sid.inodes[currentInodeNum] = _inode;
 
     int i=0;
     for (unsigned int j=0; j<fileContent.size(); j+=sid.superBlock.getBlockSize()) {
         sid.dataBlocks[currentBlocks[i]] = DataBlock(sid.superBlock.getBlockSize(),REGULAR_FILE);
-        sid.dataBlocks[currentBlocks[i]].setData(fileContent.substr(j,j+sid.superBlock.getBlockSize()));
-        printf("size %d : %d\n",i,sid.dataBlocks[currentBlocks[i]].size());
+        sid.dataBlocks[currentBlocks[i]].setData(fileContent.substr(j,sid.superBlock.getBlockSize()));
+        // printf("s---> %d\n",currentBlocks[i]);
+        // printf("size %d : %d\n",i,sid.dataBlocks[currentBlocks[i]].size());
+        // printf("size %d : %d : %ld\n",j,j+sid.superBlock.getBlockSize(), fileContent.substr(j,sid.superBlock.getBlockSize()).size());
         i++;
     }
 
@@ -287,12 +326,14 @@ int FileSystem::read(string path, string filename){
         _block = 0;
     }
 
-    int addresses[10], addressesSize=0;
+    int addresses[8], addressesSize=0;
 
-    for(int i=0;i<10;++i){
+    for(int i=0;i<8;++i){
         if(sid.inodes[_block].addressOfDiskBlocks[i] == -1){
             break;
         }
+
+        // printf("adress: %d\n",sid.inodes[_block].addressOfDiskBlocks[i]);
 
         addresses[i] = sid.inodes[_block].addressOfDiskBlocks[i];
         addressesSize++;
@@ -301,11 +342,19 @@ int FileSystem::read(string path, string filename){
     string str = "";
 
     for(int i=0;i<addressesSize;++i){
-        string str2 = sid.dataBlocks[addresses[i]].getData();
-        str.append(str2);
+        DataBlock _db = sid.dataBlocks[addresses[i]];
+        uint16_t* _addresses = _db.getAddresses();
+        int _addressesSize = _db.getAddressesSize();
+
+        for(int j=0;j<_addressesSize;++j){
+            // printf("adress2->: %d\n",_addresses[j]);
+
+            string str2 = sid.dataBlocks[_addresses[j]].getData();
+            str.append(str2);
+        }
     }
 
-    printf("%s\n",str.c_str());
+    // printf("%s\n",str.c_str());
 
     fstream newfile;
     newfile.open(filename,ios::out);
@@ -407,7 +456,7 @@ int FileSystem::calculateInodeSize(int inodeNum){
     }
 
     int _size = 0;
-    for(int i=0;i<10;++i){
+    for(int i=0;i<8;++i){
         if(sid.inodes[inodeNum].addressOfDiskBlocks[i] == -1){
             break;
         }

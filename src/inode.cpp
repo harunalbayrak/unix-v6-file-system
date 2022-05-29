@@ -40,7 +40,7 @@ int Inode::setEmpty(){
     changedTime = time(NULL);
     modifiedTime = time(NULL);
     accessTime = time(NULL);
-    for(int i=0;i<10;++i){
+    for(int i=0;i<8;++i){
         addressOfDiskBlocks[i] = -1;
     }
     isEmpty = 1;
@@ -48,7 +48,7 @@ int Inode::setEmpty(){
     return 0;
 }
 
-int Inode::setAddresses(int addresses[], int addressesSize){
+int Inode::setAddresses(uint16_t* addresses, int addressesSize){
     for(int i=0;i<addressesSize;++i){
         addressOfDiskBlocks[i] = addresses[i];
     }
@@ -63,7 +63,7 @@ void Inode::init(){
     modifiedTime = time(NULL);
     accessTime = time(NULL);
     indirectBlockType = SINGLE;
-    for(int i=0;i<10;++i){
+    for(int i=0;i<8;++i){
         addressOfDiskBlocks[i] = -1;
     }
     isEmpty = 1;

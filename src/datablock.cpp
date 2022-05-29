@@ -61,6 +61,34 @@ int DataBlock::addDirectoryEntry(DirectoryEntry directoryEntry){
     return 0;
 }
 
+int DataBlock::addAddress(uint16_t address){
+    try{
+        if (addresses == NULL){
+            addresses = (uint16_t*) malloc(sizeof(uint16_t));
+            addresses[addressesSize++] = address;
+        } else{
+            uint16_t* old = (uint16_t*) malloc(addressesSize*sizeof(uint16_t));
+            for(size_t i=0;i<addressesSize;++i){
+                old[i] = addresses[i];
+            }
+
+            addressesSize++;
+            addresses = (uint16_t*) realloc(addresses, addressesSize*sizeof(uint16_t));
+    
+            for(size_t i=0;i<addressesSize-1;++i){
+                addresses[i] = old[i];
+            }
+
+            addresses[addressesSize-1] = address;
+        }
+    } catch(const std::exception& e){
+        printf("Error: %s\n", e.what());
+        return -1;
+    }
+
+    return 0;
+}
+
 int DataBlock::removeDirectoryEntry(int inodeAddress){
     try{
         if (directoryEntries == NULL){
@@ -94,6 +122,7 @@ int DataBlock::removeDirectoryEntry(int inodeAddress){
 int DataBlock::setEmptyDataBlock(int blockSize){
     data.clear();
     data.resize(blockSize);
+    init();
 
     return 0;
 }
@@ -118,6 +147,14 @@ size_t DataBlock::getDirectoryEntriesSize(){
     return directoryEntriesSize;
 }
 
+uint16_t* DataBlock::getAddresses(){
+    return addresses;
+}
+
+size_t DataBlock::getAddressesSize(){
+    return addressesSize;
+}
+
 string DataBlock::getData(){
     return data;
 }
@@ -125,4 +162,7 @@ string DataBlock::getData(){
 void DataBlock::init(){
     directoryEntries = NULL;
     directoryEntriesSize = 0;
+
+    addresses = NULL;
+    addressesSize = 0;
 }
