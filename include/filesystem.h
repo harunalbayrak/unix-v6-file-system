@@ -8,7 +8,7 @@
 #include "datablock.h"
 
 #define NUMBEROF_INODE 512
-#define NUMBEROF_BLOCK 65535 // Max value of uint16_t
+#define NUMBEROF_BLOCK 65535
 
 using namespace std;
 
@@ -23,6 +23,7 @@ class FileSystem {
         FileSystem();
         FileSystem(int blockSize);
         FileSystem(int blockSize, string filename);
+        FileSystem(string filename);
         int makeFileSystem();
         int createFile();
         int createReader();
@@ -45,14 +46,9 @@ class FileSystem {
         int readSIDFromFS();
         int incrementI_B();
         int printCommand(int command, string path, string filename);
-        int printSuperBlock(const SuperBlock& superBlock);
-        int printInode(const Inode& inode);
-        int printDataBlockNonEmpty();
-        int printDataBlock(DataBlock* dataBlock);
+        int printInodes();
 
-        uint16_t inodeSize = 128;
         uint16_t blockSize = 0;
-
         string filename;
         SID sid;
 };

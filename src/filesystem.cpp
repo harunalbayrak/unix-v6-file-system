@@ -16,27 +16,30 @@ FileSystem::FileSystem(int blockSize){
 }
 
 FileSystem::FileSystem(int blockSize, string filename){
-    this->blockSize = blockSize;
+    this->blockSize = blockSize * 1024;
+    this->filename = filename;
+}
+
+FileSystem::FileSystem(string filename){
     this->filename = filename;
 
-    printf("Block Size: %d\nFilename: %s\n", blockSize, filename.c_str());
+    readSIDFromFS();
 }
 
 int FileSystem::getBlockSize(){
     return this->blockSize;
 }
 
+// Create a empty file system. Create a ROOT Directory.
 int FileSystem::makeFileSystem(){
     sid.superBlock.setSuperBlockSize(sizeof(SuperBlock));
-    sid.superBlock.setInodeSize(inodeSize);
-    sid.superBlock.setBlockSize(blockSize * 1024);
+    sid.superBlock.setBlockSize(blockSize);
     sid.superBlock.setNumberOfInodes(0);
     sid.superBlock.setNumberOfBlocks(0);
     sid.superBlock.setNumberOfFreeInodes(NUMBEROF_INODE);
     sid.superBlock.setNumberOfFreeBlocks(NUMBEROF_BLOCK);
 
     for(int i=0;i<NUMBEROF_INODE;++i){
-        // createInode(&sid.inodes[i],i+1);
         Inode _inode = Inode(i+1);
         sid.inodes[i] = _inode;
     }
@@ -64,44 +67,63 @@ int FileSystem::makeFileSystem(){
 int FileSystem::dir(string path){
     readSIDFromFS();
 
-    size_t pos = 0;
-    int count = 0, _block = 0;
-    string token2, delimiter = "/";
-    while ((pos = path.find(delimiter)) != string::npos) {
-        count++;
-        token2 = path.substr(0, pos);
-        path.erase(0, pos + delimiter.length());
+    int _block = -1;
 
-        if(strcmp(token2.c_str(), "") == 0){
-            continue;
-        }
-        _block = getDataBlock2(path.c_str());
-        if(_block == -1){
-            printf("Error 2\n");
-            return -1;
-        } 
-    }
-
-    _block = getDataBlock2(path.c_str());
-    if(_block == -1){
+    if(strcmp(path.c_str(),"\\") == 0){
         _block = 0;
+    } else{
+        _block = splitPath(&path);
     }
 
-    DataBlock _dataBlock = sid.dataBlocks[_block];
-    for(size_t i=0;i<_dataBlock.getDirectoryEntriesSize();++i){
-        DirectoryEntry _directoryEntry = _dataBlock.getDirectoryEntries()[i];
+    if(_block == -1){
+        return -1;
+    }
 
-        printf("-> %s\n",_directoryEntry.getDirectoryName());
+    if(sid.inodes[_block].type == REGULAR_FILE){
+        return -1;
+    }
+
+    sid.inodes[_block].changedTime = time(NULL);
+    sid.inodes[_block].accessTime = time(NULL);
+    sid.inodes[_block].modifiedTime = time(NULL);
+
+    int inode = -1;
+    DataBlock _dataBlock = sid.dataBlocks[_block];
+    for(int i=0;i<_dataBlock.getDirectoryEntriesSize();++i){
+        DirectoryEntry _directoryEntry = _dataBlock.getDirectoryEntries()[i];
+        if(strcmp(_directoryEntry.getFileName(),path.c_str()) == 0){
+            inode = _directoryEntry.getInodeAddress();
+            break;
+        }
+    }
+    
+    if(strcmp(path.c_str(),"\\") == 0){
+        _dataBlock = sid.dataBlocks[_block];
+    } else{
+        if(inode == -1){
+            return -1;
+        }
+
+        _dataBlock = sid.dataBlocks[inode];
+    }
+    for(int i=0;i<_dataBlock.getDirectoryEntriesSize();++i){
+        DirectoryEntry _directoryEntry = _dataBlock.getDirectoryEntries()[i];
+        printf("-> %s\n",_directoryEntry.getFileName());
     }
 
     return 0;
 }
 
 int FileSystem::mkdir(string path){
+    if(strcmp(path.c_str(),"\\")==0){
+        printf("Error: Root path can't be created! It is automatically created when creating a file system.\n");
+        return -1;
+    }
+
     readSIDFromFS();
 
     if(sid.superBlock.getNumberOfFreeInodes() == 0 || sid.superBlock.getNumberOfFreeBlocks() == 0){
-        printf("Error 4");
+        printf("Error: There is no free inode or free block.\n");
         return -1;
     }
 
@@ -122,18 +144,41 @@ int FileSystem::mkdir(string path){
         }
     }
 
+    int _block = splitPath(&path);
+    if(_block == -1){
+        return -1;
+    }
+
+    if(sid.inodes[_block].type == REGULAR_FILE){
+        return -1;
+    }
+
+    if(path.length() > 14){
+        printf("Error: Maximum length of the file name must be 14. The length of your file name is: %ld\n", path.length());
+        return -1;
+    }
+
+    DataBlock _dataBlock = sid.dataBlocks[sid.inodes[_block].addressOfDiskBlocks[0]];
+    for(int i=0;i<_dataBlock.getDirectoryEntriesSize();++i){
+        DirectoryEntry _directoryEntry = _dataBlock.getDirectoryEntries()[i];
+
+        if(strcmp(_directoryEntry.getFileName(), path.c_str()) == 0){
+            return -1;
+        }
+    }
+
     incrementI_B();
 
     Inode _inode = Inode(currentInodeNum,currentBlockNum,DIRECTORY);
+    _inode.changedTime = time(NULL);
+    _inode.accessTime = time(NULL);
+    _inode.modifiedTime = time(NULL);
     sid.inodes[currentInodeNum] = _inode;
-
-    // printf("path: %s \n",path.c_str());
-
-    int _block = splitPath(&path);
 
     DirectoryEntry _directoryEntry;
     _directoryEntry.setInodeAddress(currentInodeNum);
-    _directoryEntry.setDirectoryName(path.c_str());
+
+    _directoryEntry.setFileName(path.c_str());
 
     sid.dataBlocks[_block].addDirectoryEntry(_directoryEntry); 
 
@@ -143,30 +188,34 @@ int FileSystem::mkdir(string path){
 }
 
 int FileSystem::rmdir(string path){
-    readSIDFromFS();
-
-    // printDataBlockNonEmpty();
-
-    if(strcmp(path.c_str(),"/")==0){
-        printf("Root path silinemez");
+    if(strcmp(path.c_str(),"\\")==0){
+        printf("Root Path can't be deleted!");
         return -1;
     }
 
+    readSIDFromFS();
+
     int flag = 0, _block = splitPath(&path);
+    if(_block == -1){
+        return -1;
+    }
+
+    if(path.length() > 14){
+        printf("Error: Maximum length of the file name must be 14. The length of your file name is: %ld\n", path.length());
+        return -1;
+    }
 
     DataBlock _dataBlock = sid.dataBlocks[_block];
-    for(size_t i=0;i<_dataBlock.getDirectoryEntriesSize();++i){
+    for(int i=0;i<_dataBlock.getDirectoryEntriesSize();++i){
         DirectoryEntry _directoryEntry = _dataBlock.getDirectoryEntries()[i];
 
-        if(strcmp(_directoryEntry.getDirectoryName(),path.c_str()) == 0){
+        if(strcmp(_directoryEntry.getFileName(),path.c_str()) == 0){
             if(sid.inodes[_directoryEntry.getInodeAddress()].type == DIRECTORY){
                 sid.dataBlocks[_block].removeDirectoryEntry(_directoryEntry.getInodeAddress());
                 flag = 1;
             }
         }
     }
-    
-    // printDataBlockNonEmpty();
 
     writeSIDToFS();
 
@@ -178,6 +227,15 @@ int FileSystem::rmdir(string path){
 }
 
 int FileSystem::dumpe2fs(){
+    readSIDFromFS();
+
+    printf("Filesystem volume name: %s\n",filename.c_str());
+    printf("Block Size: %d\n",sid.superBlock.getSuperBlockSize());
+    printf("Inode Count: %d\n",sid.superBlock.getNumberOfInodes());
+    printf("Block Count: %d\n",sid.superBlock.getNumberOfBlocks());
+    printf("Free Inode Count: %d\n",sid.superBlock.getNumberOfFreeInodes());
+    printf("Free Block Count: %d\n",sid.superBlock.getNumberOfFreeBlocks());
+    printInodes();
 
     return 0;
 }
@@ -186,7 +244,7 @@ int FileSystem::write(string path, string filename){
     readSIDFromFS();
 
     if(sid.superBlock.getNumberOfFreeInodes() == 0 || sid.superBlock.getNumberOfFreeBlocks() == 0){
-        printf("Error 4");
+        printf("Error: There is no free inode or free block.\n");
         return -1;
     }
 
@@ -215,6 +273,27 @@ int FileSystem::write(string path, string filename){
     Inode _inode = Inode(currentInodeNum,currentBlockNum,REGULAR_FILE);
     
     int _block = splitPath(&path);
+    if(_block == -1){
+        return -1;
+    }
+
+    if(path.length() > 14){
+        printf("Error: Maximum length of the file name must be 14. The length of your file name is: %ld\n", path.length());
+        return -1;
+    }
+
+    if(sid.inodes[_block].type == REGULAR_FILE){
+        return -1;
+    }
+
+    DataBlock _dataBlock = sid.dataBlocks[sid.inodes[_block].addressOfDiskBlocks[0]];
+    for(int i=0;i<_dataBlock.getDirectoryEntriesSize();++i){
+        DirectoryEntry _directoryEntry = _dataBlock.getDirectoryEntries()[i];
+
+        if(strcmp(_directoryEntry.getFileName(), path.c_str()) == 0){
+            return -1;
+        }
+    }
 
     fstream newfile;
     string fileContent;
@@ -228,8 +307,17 @@ int FileSystem::write(string path, string filename){
         newfile.close();
     }
 
-    // FIXME: Fix last character problem
-    // fileContent.pop_back();
+    char c;
+    newfile.open(filename,ios::in);
+    if (newfile.is_open()){
+        newfile.seekg(-1,newfile.end);
+        newfile.read(&c,1);
+        newfile.close();
+    }
+
+    if(c != '\n'){
+        fileContent.pop_back();
+    }
 
     double d_howManyBlock = fileContent.size()/(double)sid.superBlock.getBlockSize();
     int i_howManyBlock = ceil(d_howManyBlock);
@@ -243,18 +331,12 @@ int FileSystem::write(string path, string filename){
         }
     }
 
-    // printf("%d %d\n",maxBlockSize,i_howManyBlock);
-
     d_howManyBlock = currentBlocksSize/(double)maxBlockSize;
     i_howManyBlock = ceil(d_howManyBlock);
-
-    // printf("%d\n",i_howManyBlock);
 
     int k=0;
     for(int i=0;i<8 && i<i_howManyBlock;++i){
         int addressSingleDB = -1;
-
-        // printf("hey\n");
 
         if(i == 0){
             addressSingleDB = _inode.addressOfDiskBlocks[i];
@@ -270,30 +352,29 @@ int FileSystem::write(string path, string filename){
         }
 
         for(;k<currentBlocksSize;++k){
-            // printf("cc: %d %d\n",addressSingleDB,currentBlocks[k]);
-
             sid.dataBlocks[addressSingleDB].addAddress(currentBlocks[k]);
         }
     }
 
-    // _inode.setAddresses(currentBlocks,currentBlocksSize);
+    _inode.setAddresses(currentBlocks,currentBlocksSize);
     sid.inodes[currentInodeNum] = _inode;
 
     int i=0;
     for (unsigned int j=0; j<fileContent.size(); j+=sid.superBlock.getBlockSize()) {
+        string data = fileContent.substr(j,sid.superBlock.getBlockSize());
         sid.dataBlocks[currentBlocks[i]] = DataBlock(sid.superBlock.getBlockSize(),REGULAR_FILE);
-        sid.dataBlocks[currentBlocks[i]].setData(fileContent.substr(j,sid.superBlock.getBlockSize()));
-        // printf("s---> %d\n",currentBlocks[i]);
-        // printf("size %d : %d\n",i,sid.dataBlocks[currentBlocks[i]].size());
-        // printf("size %d : %d : %ld\n",j,j+sid.superBlock.getBlockSize(), fileContent.substr(j,sid.superBlock.getBlockSize()).size());
+        sid.dataBlocks[currentBlocks[i]].setData(data);
         i++;
     }
 
     DirectoryEntry _directoryEntry;
     _directoryEntry.setInodeAddress(currentInodeNum);
-    _directoryEntry.setDirectoryName(path.c_str());
+    _directoryEntry.setFileName(path.c_str());
 
     sid.dataBlocks[_block].addDirectoryEntry(_directoryEntry); 
+
+    sid.superBlock.setNumberOfBlocks(currentBlocksSize + sid.superBlock.getNumberOfBlocks());
+    sid.superBlock.setNumberOfFreeBlocks(sid.superBlock.getNumberOfFreeBlocks() - currentBlocksSize);
 
     writeSIDToFS();
 
@@ -303,39 +384,34 @@ int FileSystem::write(string path, string filename){
 int FileSystem::read(string path, string filename){
     readSIDFromFS();
 
-    size_t pos = 0;
-    int count = 0, _block = 0;
-    string token2, delimiter = "/";
-    while ((pos = path.find(delimiter)) != string::npos) {
-        count++;
-        token2 = path.substr(0, pos);
-        path.erase(0, pos + delimiter.length());
-
-        if(strcmp(token2.c_str(), "") == 0){
-            continue;
-        }
-        _block = getDataBlock2(path.c_str());
-        if(_block == -1){
-            printf("Error 2\n");
-            return -1;
-        } 
+    int _block = splitPath(&path);
+    if(_block == -1){
+        return -1;
     }
 
-    _block = getDataBlock2(path.c_str());
-    if(_block == -1){
-        _block = 0;
+    
+    int inode = -1;
+    DataBlock _dataBlock = sid.dataBlocks[_block];
+    for(int i=0;i<_dataBlock.getDirectoryEntriesSize();++i){
+        DirectoryEntry _directoryEntry = _dataBlock.getDirectoryEntries()[i];
+
+        if(strcmp(_directoryEntry.getFileName(), path.c_str()) == 0){
+            inode = _directoryEntry.getInodeAddress();
+            break;
+        }
+    }
+    if(inode == -1){
+        return -1;
     }
 
     int addresses[8], addressesSize=0;
 
     for(int i=0;i<8;++i){
-        if(sid.inodes[_block].addressOfDiskBlocks[i] == -1){
+        if(sid.inodes[inode].addressOfDiskBlocks[i] == -1){
             break;
         }
 
-        // printf("adress: %d\n",sid.inodes[_block].addressOfDiskBlocks[i]);
-
-        addresses[i] = sid.inodes[_block].addressOfDiskBlocks[i];
+        addresses[i] = sid.inodes[inode].addressOfDiskBlocks[i];
         addressesSize++;
     }
 
@@ -343,18 +419,8 @@ int FileSystem::read(string path, string filename){
 
     for(int i=0;i<addressesSize;++i){
         DataBlock _db = sid.dataBlocks[addresses[i]];
-        uint16_t* _addresses = _db.getAddresses();
-        int _addressesSize = _db.getAddressesSize();
-
-        for(int j=0;j<_addressesSize;++j){
-            // printf("adress2->: %d\n",_addresses[j]);
-
-            string str2 = sid.dataBlocks[_addresses[j]].getData();
-            str.append(str2);
-        }
+        str.append(_db.getData());
     }
-
-    // printf("%s\n",str.c_str());
 
     fstream newfile;
     newfile.open(filename,ios::out);
@@ -369,20 +435,21 @@ int FileSystem::read(string path, string filename){
 int FileSystem::del(string path){
     readSIDFromFS();
 
-    // printDataBlockNonEmpty();
-
-    if(strcmp(path.c_str(),"/")==0){
-        printf("Root path silinemez");
+    if(strcmp(path.c_str(),"\\")==0){
+        printf("Error: Root path can't be deleted\n");
         return -1;
     }
 
     int flag = 0, _block = splitPath(&path);
+    if(_block == -1){
+        return -1;
+    }
 
     DataBlock _dataBlock = sid.dataBlocks[_block];
-    for(size_t i=0;i<_dataBlock.getDirectoryEntriesSize();++i){
+    for(int i=0;i<_dataBlock.getDirectoryEntriesSize();++i){
         DirectoryEntry _directoryEntry = _dataBlock.getDirectoryEntries()[i];
 
-        if(strcmp(_directoryEntry.getDirectoryName(),path.c_str()) == 0){
+        if(strcmp(_directoryEntry.getFileName(),path.c_str()) == 0){
             if(sid.inodes[_directoryEntry.getInodeAddress()].type == REGULAR_FILE){
                 sid.dataBlocks[_block].removeDirectoryEntry(_directoryEntry.getInodeAddress());
                 flag = 1;
@@ -390,8 +457,6 @@ int FileSystem::del(string path){
         }
     }
     
-    // printDataBlockNonEmpty();
-
     writeSIDToFS();
 
     if(flag == 0) {
@@ -410,12 +475,10 @@ int FileSystem::getDataBlock2(const char* db){
         }
         int address = sid.inodes[i].addressOfDiskBlocks[0];
         DataBlock _dblock = sid.dataBlocks[address];
-        for(size_t i=0;i<_dblock.getDirectoryEntriesSize();++i){
+        for(int i=0;i<_dblock.getDirectoryEntriesSize();++i){
             DirectoryEntry _directoryEntry = _dblock.getDirectoryEntries()[i];
 
-            // printf("%d %s %s\n",_directoryEntry.inodeAddress,_directoryEntry.directoryName,db);
-
-            int cmp = strcmp(_directoryEntry.getDirectoryName(),db);
+            int cmp = strcmp(_directoryEntry.getFileName(),db);
             if(cmp == 0){
                 return _directoryEntry.getInodeAddress();
             }
@@ -428,11 +491,10 @@ int FileSystem::getDataBlock2(const char* db){
 int FileSystem::splitPath(string* path){
     size_t pos = 0;
     int count = 0, _block = 0;
-    string token2, delimiter = "/";
+    string token2, delimiter = "\\";
     while ((pos = path->find(delimiter)) != string::npos) {
         count++;
         token2 = path->substr(0, pos);
-        // printf("1- %s\n",token2.c_str());
         path->erase(0, pos + delimiter.length());
 
         if(strcmp(token2.c_str(), "") == 0){
@@ -440,7 +502,7 @@ int FileSystem::splitPath(string* path){
         }
         _block = getDataBlock2(token2.c_str());
         if(_block == -1){
-            printf("Error 2\n");
+            // printf("Error\n");
             return -1;
         }
     }
@@ -469,37 +531,69 @@ int FileSystem::calculateInodeSize(int inodeNum){
 }
 
 int FileSystem::writeSIDToFS(){
-    ofstream wf(filename.c_str(), ios::out | ios::binary);
-    if(!wf) {
-        cout << "Cannot open file!" << endl;
+    FILE *fptr = fopen(filename.c_str(), "wb");
+    if(fptr == NULL){
+        printf("Error: %s could not be opened.\n",filename.c_str());
         return -1;
     }
 
-    wf.write((char *) &sid.superBlock, sizeof(SuperBlock));
-    for(int i=0;i<NUMBEROF_INODE;i++)
-        wf.write((char *) &sid.inodes[i], sizeof(Inode));
-    for(int i=0;i<NUMBEROF_BLOCK;i++)
-        wf.write((char *) &sid.dataBlocks[i], sizeof(DataBlock));
+    fwrite(&sid.superBlock, sizeof(SuperBlock), 1, fptr);
+    try{
+        for(int i=0;i<NUMBEROF_INODE;i++){
+            fwrite(&sid.inodes[i], sizeof(Inode), 1, fptr);
+        }
+    } catch(const std::exception& e){
+        printf("Error: %s\n",e.what());
+        return -1;
+    }
 
-    wf.close();
+    try{
+        for(int i=0;i<NUMBEROF_BLOCK;i++){
+            if(sid.dataBlocks[i].serialize(fptr, true) == -1){
+                printf("Error: Writing Blocks Error: Block Number: %d\n",i);
+                return -1;
+            }
+        }
+    } catch(const std::exception& e){
+        printf("Error: %s\n",e.what());
+        return -1;
+    }
+
+    fclose(fptr);
 
     return 0;
 }
 
 int FileSystem::readSIDFromFS(){
-    SID* _sid = new SID();
-
-    ifstream rf(filename.c_str(), ios::out | ios::binary);
-    if(!rf) {
-        cout << "Cannot open file!" << endl;
+    FILE *fptr = fopen(filename.c_str(), "rb");
+    if(fptr == NULL){
+        printf("Error: %s could not be opened.\n",filename.c_str());
         return -1;
     }
 
-    rf.read((char *) &sid.superBlock, sizeof(SuperBlock));
-    for(int i= 0;i<NUMBEROF_INODE;i++)
-        rf.read((char *) &_sid->inodes[i], sizeof(Inode));
-    for(int i= 0;i<NUMBEROF_BLOCK;i++)
-        rf.read((char *) &_sid->dataBlocks[i], sizeof(DataBlock));
+    fread(&sid.superBlock, sizeof(SuperBlock), 1, fptr);
+    try{
+        for(int i=0;i<NUMBEROF_INODE;i++){
+            fread(&sid.inodes[i], sizeof(Inode), 1, fptr);
+        }
+    } catch(const std::exception& e){
+        printf("-> Error: %s\n",e.what());
+        return -1;
+    }
+
+    try{
+        for(int i=0;i<NUMBEROF_BLOCK;i++){
+            if(sid.dataBlocks[i].serialize(fptr, false) == -1){
+                printf("Error: Reading Blocks Error: Block Number: %d\n",i);
+                return -1;
+            }
+        }
+    } catch(const std::exception& e){
+        printf("-> Error: %s\n",e.what());
+        return -1;
+    }
+
+    fclose(fptr);    
 
     return 0;
 }
@@ -520,7 +614,7 @@ int FileSystem::incrementI_B(){
 int FileSystem::sendCommand(int command, string path){
     int result = 0;
 
-    printf("\n-------------------\n");
+    printf("-------------------\n");
     printCommand(command, path, "");
 
     switch(command){
@@ -547,7 +641,7 @@ int FileSystem::sendCommand(int command, string path){
         printf("STATUS: FAIL!\n");
     }
 
-    printf("-------------------\n");
+    printf("-------------------\n\n");
 
     return 0;
 }
@@ -555,7 +649,7 @@ int FileSystem::sendCommand(int command, string path){
 int FileSystem::sendCommand(int command, string path, string filename){
     int result = 0;
 
-    printf("\n-------------------\n");
+    printf("-------------------\n");
     printCommand(command, path, filename);
 
     switch(command){
@@ -573,7 +667,7 @@ int FileSystem::sendCommand(int command, string path, string filename){
         printf("STATUS: FAIL!\n");
     }
 
-    printf("-------------------\n");
+    printf("-------------------\n\n");
 
     return 0;
 }
@@ -606,48 +700,47 @@ int FileSystem::printCommand(int command, string path, string filename){
     return 0;
 }
 
-int FileSystem::printSuperBlock(const SuperBlock& superblock){
-    printf("---------- SUPERBLOCK ----------\n");
-    printf("--------- General Info ---------\n");
-    printf("Block Size: %d\n",sid.superBlock.getBlockSize());
-    printf("Inode Size: %d\n",sid.superBlock.getInodeSize());
-    printf("SuperBlock Size: %d\n",sid.superBlock.getSuperBlockSize());
-    // printf("Block per group: %d\n",superBlock.generalInfo.groupBlock);
-    printf("---------- Number Of ----------\n");
-    printf("Number of Free Data Blocks: %d\n",sid.superBlock.getNumberOfFreeBlocks());
-    printf("Number of Data Blocks: %d\n",sid.superBlock.getNumberOfBlocks());
-    printf("Number of Free Inodes: %d\n",sid.superBlock.getNumberOfFreeInodes());
-    printf("Number of Inodes: %d\n",sid.superBlock.getNumberOfInodes());
-    printf("--------------------------------\n");
+int FileSystem::printInodes(){
+    readSIDFromFS();
+
+    struct tm *tmp;
+
+    for(int i=0;i<NUMBEROF_INODE;++i){
+        Inode _inode = sid.inodes[i];
+
+        if(_inode.isEmpty == 1){
+            continue;
+        }
+
+        printf("Inode Number: %d\n",i);
+
+        tmp = localtime(&_inode.changedTime);
+        printf("Changed Time: %s",asctime(tmp));
+
+        tmp = localtime(&_inode.modifiedTime);
+        printf("Modified Time: %s",asctime(tmp));
+
+        tmp = localtime(&_inode.accessTime);
+        printf("Access Time: %s",asctime(tmp));
+
+        if(_inode.type == ROOT_DIRECTORY){
+            printf("Type: Root Directory\n");
+        } else if(_inode.type == DIRECTORY){
+            printf("Type: Directory\n");
+        } else if(_inode.type == REGULAR_FILE){
+            printf("Type: Regular File\n");
+        }
+        printf("Blocks: ");
+        for(int i=0;i<8;++i){
+            if(_inode.addressOfDiskBlocks[i] != -1){
+                if(i == 7)
+                    printf("%d ",_inode.addressOfDiskBlocks[i]);
+                else
+                    printf("%d, ",_inode.addressOfDiskBlocks[i]);
+            }
+        }
+        printf("\n---\n");
+    }
 
     return 0;
 }
-
-int FileSystem::printInode(const Inode& inode){
-
-    return 0;
-}
-
-// int FileSystem::printDataBlockNonEmpty(){
-//     for(int i=0;i<NUMBEROF_BLOCK;++i){
-//         if(sid.dataBlocks[i].isEmpty() == 0){
-//             printDataBlock(&sid.dataBlocks[i]);
-//         }
-//     }
-
-//     return 0;   
-// }
-
-// int FileSystem::printDataBlock(DataBlock* dataBlock){
-//     printf("--------------------------------\n");
-//     // printf("------ Block Number: %d\n", 0);
-//     printf("------ Inode : %d\n", dataBlock->getDirectoryEntry().inodeAddress);
-//     printf("------ Directory Name : %s\n", dataBlock->getDirectoryEntry().directoryName);
-//     printf("------ ADbs: ");
-//     for(int i=0;i<dataBlock->getADbsSize();++i){
-//         printf("%d,",dataBlock->getADbs()[i]);
-//     }
-//     printf("\n--------------------------------\n");
-
-//     return 0;
-// }

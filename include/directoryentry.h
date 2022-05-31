@@ -8,13 +8,15 @@
 class DirectoryEntry{
     public:
         DirectoryEntry();
+        DirectoryEntry(DirectoryEntry* dir);
         int getInodeAddress();
-        char* getDirectoryName();
+        char* getFileName();
         void setInodeAddress(int n);
-        void setDirectoryName(const char* directoryName);
+        void setFileName(const char* fileName);
+        int isEmpty();
     private:
         uint16_t inodeAddress;
-        char directoryName[MAX_NAME_SIZE];
+        char fileName[MAX_NAME_SIZE];
 };
 
 #endif

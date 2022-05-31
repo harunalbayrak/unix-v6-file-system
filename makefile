@@ -1,12 +1,17 @@
 CC = g++
 CFLAGS = -Wall -g
-MAIN = main
 
-$(MAIN): obj/$(MAIN).o obj/filesystem.o obj/superblock.o obj/inode.o obj/datablock.o obj/directoryentry.o
-	$(CC) $(CFLAGS) -o $(MAIN) obj/$(MAIN).o obj/filesystem.o obj/superblock.o obj/inode.o obj/datablock.o obj/directoryentry.o
+makeFileSystem: obj/makeFileSystem.o obj/filesystem.o obj/superblock.o obj/inode.o obj/datablock.o obj/directoryentry.o fileSystemOper
+	$(CC) $(CFLAGS) -o makeFileSystem obj/makeFileSystem.o obj/filesystem.o obj/superblock.o obj/inode.o obj/datablock.o obj/directoryentry.o
 
-obj/$(MAIN).o: $(MAIN).cpp include/filesystem.h include/inode.h include/superblock.h include/directoryentry.h include/datablock.h
-	$(CC) $(CFLAGS) -c $(MAIN).cpp -o obj/main.o
+fileSystemOper: obj/fileSystemOper.o obj/filesystem.o obj/superblock.o obj/inode.o obj/datablock.o obj/directoryentry.o
+	$(CC) $(CFLAGS) -o fileSystemOper obj/fileSystemOper.o obj/filesystem.o obj/superblock.o obj/inode.o obj/datablock.o obj/directoryentry.o
+
+obj/makeFileSystem.o: makeFileSystem.cpp include/filesystem.h include/inode.h include/superblock.h include/directoryentry.h include/datablock.h
+	$(CC) $(CFLAGS) -c makeFileSystem.cpp -o obj/makeFileSystem.o
+
+obj/fileSystemOper.o: fileSystemOper.cpp include/filesystem.h include/inode.h include/superblock.h include/directoryentry.h include/datablock.h
+	$(CC) $(CFLAGS) -c fileSystemOper.cpp -o obj/fileSystemOper.o
 
 obj/filesystem.o: include/filesystem.h
 	$(CC) $(CFLAGS) -c src/filesystem.cpp -o obj/filesystem.o
@@ -24,4 +29,4 @@ obj/directoryentry.o: include/directoryentry.h
 	$(CC) $(CFLAGS) -c src/directoryentry.cpp -o obj/directoryentry.o
 
 clean: 
-	rm $(MAIN) obj/*.o
+	rm makeFileSystem fileSystemOper obj/*.o

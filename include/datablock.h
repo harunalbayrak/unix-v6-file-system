@@ -1,6 +1,7 @@
 #ifndef _DATABLOCK_H_
 #define _DATABLOCK_H_
 
+#include <fstream>
 #include "directoryentry.h"
 #include "inode.h"
 
@@ -21,19 +22,21 @@ class DataBlock {
         int setDirectoryEntriesSize(int size);
         int setData(string data);
         DirectoryEntry* getDirectoryEntries();
-        size_t getDirectoryEntriesSize();
+        int getDirectoryEntriesSize();
         uint16_t* getAddresses();
-        size_t getAddressesSize();
+        int getAddressesSize();
         string getData();
+        int getDataSize();
+        int serialize(FILE *fptr, bool bWrite);
+        // int serialize(fstream &fs, bool bWrite);
+        
     private:
         void init();
-        // If the datablock consist of directory entries
-        size_t directoryEntriesSize;
-        DirectoryEntry* directoryEntries;
-        
-        // If the datablock consist of addresses of other data blocks
-        size_t addressesSize;
+        int addressesSize;
         uint16_t* addresses;
+        int directoryEntriesSize;
+        DirectoryEntry* directoryEntries;
+        int dataSize;
         string data;
 };
 

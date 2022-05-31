@@ -1,32 +1,35 @@
 #include <iostream>
+#include <fstream>
 #include <cstdlib>
 #include "../include/datablock.h"
 
+using namespace std;
+
 DataBlock::DataBlock(){
-    data.resize(0);
     init();
 }
 
 DataBlock::DataBlock(int blockSize){
-    data.resize(blockSize);
     init();
 }
 
 DataBlock::DataBlock(int blockSize, I_Type type){
-    data.resize(blockSize);
     init();
 }
 
 int DataBlock::size(){
     if(data.compare("") == 0){
         return sizeof(DirectoryEntry) * directoryEntriesSize;
+        // return 0;
     }
 
     return data.size();
 }
 
 int DataBlock::isEmpty(){
-    return directoryEntriesSize == 0;
+    return directoryEntriesSize == 0 && dataSize == 0 && addressesSize == 0;
+    
+    // return 0;
 }
 
 int DataBlock::isDirectory(){
@@ -40,14 +43,14 @@ int DataBlock::addDirectoryEntry(DirectoryEntry directoryEntry){
             directoryEntries[directoryEntriesSize++] = directoryEntry;
         } else{
             DirectoryEntry* old = (DirectoryEntry*) malloc(directoryEntriesSize*sizeof(DirectoryEntry));
-            for(size_t i=0;i<directoryEntriesSize;++i){
+            for(int i=0;i<directoryEntriesSize;++i){
                 old[i] = directoryEntries[i];
             }
 
             directoryEntriesSize++;
             directoryEntries = (DirectoryEntry*) realloc(directoryEntries, directoryEntriesSize*sizeof(DirectoryEntry));
     
-            for(size_t i=0;i<directoryEntriesSize-1;++i){
+            for(int i=0;i<directoryEntriesSize-1;++i){
                 directoryEntries[i] = old[i];
             }
 
@@ -68,14 +71,14 @@ int DataBlock::addAddress(uint16_t address){
             addresses[addressesSize++] = address;
         } else{
             uint16_t* old = (uint16_t*) malloc(addressesSize*sizeof(uint16_t));
-            for(size_t i=0;i<addressesSize;++i){
+            for(int i=0;i<addressesSize;++i){
                 old[i] = addresses[i];
             }
 
             addressesSize++;
             addresses = (uint16_t*) realloc(addresses, addressesSize*sizeof(uint16_t));
     
-            for(size_t i=0;i<addressesSize-1;++i){
+            for(int i=0;i<addressesSize-1;++i){
                 addresses[i] = old[i];
             }
 
@@ -95,7 +98,7 @@ int DataBlock::removeDirectoryEntry(int inodeAddress){
             return -1;
         } else{
             DirectoryEntry* old = (DirectoryEntry*) malloc(directoryEntriesSize*sizeof(DirectoryEntry));
-            for(size_t i=0,j=0;i<directoryEntriesSize;++i,++j){
+            for(int i=0,j=0;i<directoryEntriesSize;++i,++j){
                 if(directoryEntries[j].getInodeAddress() != inodeAddress){
                     old[i] = directoryEntries[j];
                 } else{
@@ -107,7 +110,7 @@ int DataBlock::removeDirectoryEntry(int inodeAddress){
             directoryEntriesSize--;
             directoryEntries = (DirectoryEntry*) realloc(directoryEntries, directoryEntriesSize*sizeof(DirectoryEntry));
     
-            for(size_t i=0;i<directoryEntriesSize;++i){
+            for(int i=0;i<directoryEntriesSize;++i){
                 directoryEntries[i] = old[i];
             }
         }
@@ -121,7 +124,6 @@ int DataBlock::removeDirectoryEntry(int inodeAddress){
 
 int DataBlock::setEmptyDataBlock(int blockSize){
     data.clear();
-    data.resize(blockSize);
     init();
 
     return 0;
@@ -135,6 +137,7 @@ int DataBlock::setDirectoryEntriesSize(int size){
 
 int DataBlock::setData(string data){
     this->data = data;
+    dataSize = data.length();
 
     return 0;
 }
@@ -143,7 +146,7 @@ DirectoryEntry* DataBlock::getDirectoryEntries(){
     return directoryEntries;
 }
 
-size_t DataBlock::getDirectoryEntriesSize(){
+int DataBlock::getDirectoryEntriesSize(){
     return directoryEntriesSize;
 }
 
@@ -151,7 +154,7 @@ uint16_t* DataBlock::getAddresses(){
     return addresses;
 }
 
-size_t DataBlock::getAddressesSize(){
+int DataBlock::getAddressesSize(){
     return addressesSize;
 }
 
@@ -159,10 +162,74 @@ string DataBlock::getData(){
     return data;
 }
 
+int DataBlock::getDataSize(){
+    return dataSize;
+}
+
+int DataBlock::serialize(FILE *fptr, bool bWrite){
+    addressesSize = getAddressesSize();
+    directoryEntriesSize = getDirectoryEntriesSize();
+
+    try{
+        if (bWrite) {
+            fwrite(&addressesSize, sizeof(addressesSize), 1, fptr);
+            fwrite(&directoryEntriesSize, sizeof(directoryEntriesSize), 1, fptr);
+            fwrite(&dataSize, sizeof(dataSize), 1, fptr);
+
+            for(int i=0;i<addressesSize;i++){
+                fwrite(&addresses[i], sizeof(addresses[i]), 1, fptr);
+            }
+            for(int i=0;i<directoryEntriesSize;i++){
+                fwrite(&directoryEntries[i], sizeof(directoryEntries[i]), 1, fptr);
+            }
+            if(dataSize > 0){
+                // printf("datasizew: %d\n",dataSize);
+                size_t size=data.size();
+
+                fwrite(&size, sizeof(size), 1, fptr);
+                fwrite(&data[0], size, 1, fptr);
+
+                // printf("%s\n", str);
+            }
+        }
+        else {
+            fread(&addressesSize, sizeof(addressesSize), 1, fptr);
+            fread(&directoryEntriesSize, sizeof(directoryEntriesSize), 1, fptr);
+            fread(&dataSize, sizeof(dataSize), 1, fptr);
+
+            addresses = (uint16_t*) malloc(addressesSize*sizeof(uint16_t));
+            directoryEntries = (DirectoryEntry*) malloc(directoryEntriesSize*sizeof(DirectoryEntry));  
+
+            for(int i=0;i<addressesSize;i++){
+                fread(&addresses[i], sizeof(addresses[i]), 1, fptr);
+            }
+            for(int i=0;i<directoryEntriesSize;i++){
+                fread(&directoryEntries[i], sizeof(directoryEntries[i]), 1, fptr);
+            }
+            if(dataSize > 0){
+                size_t size;
+
+                fread(&size, sizeof(size), 1, fptr);
+                data.resize(size);
+                fread(&data[0], size, 1, fptr);
+
+                dataSize = size;
+
+                // printf("_data: %s\n",data.c_str());
+            }
+        }
+    } catch(const std::exception& e){
+        printf("Error: %s\n",e.what());
+        return -1;
+    }
+
+    return 0;
+}
+
 void DataBlock::init(){
     directoryEntries = NULL;
     directoryEntriesSize = 0;
-
     addresses = NULL;
     addressesSize = 0;
+    dataSize = 0;
 }

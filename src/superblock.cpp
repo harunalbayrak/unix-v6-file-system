@@ -1,4 +1,7 @@
+#include <fstream>
 #include "../include/superblock.h"
+
+using namespace std;
 
 uint16_t SuperBlock::getNumberOfInodes(){
     return inodes;
@@ -18,10 +21,6 @@ uint16_t SuperBlock::getNumberOfFreeBlocks(){
 
 uint16_t SuperBlock::getSuperBlockSize(){
     return superBlockSize;
-}
-
-uint16_t SuperBlock::getInodeSize(){
-    return inodeSize;
 }
 
 uint16_t SuperBlock::getBlockSize(){
@@ -46,10 +45,6 @@ void SuperBlock::setNumberOfFreeBlocks(uint16_t n){
 
 void SuperBlock::setSuperBlockSize(uint16_t n){
     superBlockSize = n;
-}
-
-void SuperBlock::setInodeSize(uint16_t n){
-    inodeSize = n;
 }
 
 void SuperBlock::setBlockSize(uint16_t n){

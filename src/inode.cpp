@@ -1,6 +1,10 @@
 #include <iostream>
+#include <fstream>
 #include <cstdlib>
+#include <ctime>
 #include "../include/inode.h"
+
+using namespace std;
 
 Inode::Inode(){
     init();
